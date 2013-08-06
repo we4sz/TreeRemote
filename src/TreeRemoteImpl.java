@@ -18,7 +18,8 @@ import com.esotericsoftware.kryonet.Connection;
 import com.google.gson.Gson;
 
 public class TreeRemoteImpl implements ITreeRemote {
-
+	private enum Mood {sad,happy,angry,excited,bored};
+	private Mood m = Mood.sad;
 	private boolean loggedin = false;
 	private PlaylistResponse playlists;
 	private long trackStarted;
@@ -30,7 +31,10 @@ public class TreeRemoteImpl implements ITreeRemote {
 	private boolean isChangeingVolume = false;
 	private boolean increaseLast = false;
 	private static final int PAUSELIMIT = 800;
-
+	private static final int MOODLIMIT = 20000;//TODO: between switches of mood. maybe 5 minutes?
+	private long moodTimer = System.currentTimeMillis();
+	private int moodTouchCount=0;
+	
 	public TreeRemoteImpl() {
 		latestReleases.add(new Long(0));
 	}
@@ -113,6 +117,12 @@ public class TreeRemoteImpl implements ITreeRemote {
 	
 	public boolean shouldPlayLemonTree() {
 		return numberOfTouchesInRow() == 5;
+		//TODO: Change mood
+	}
+	
+	public boolean shouldPlayJungle() {
+		return numberOfTouchesInRow() == 3;
+		//TODO: Change mood
 	}
 	
 	public void play (String uri) {
@@ -160,6 +170,8 @@ public class TreeRemoteImpl implements ITreeRemote {
 
 	@Override
 	public void dataFromTree(String s) {
+		if (System.currentTimeMillis()-moodTimer > MOODLIMIT)
+			changeMood(moodTouchCount);
 		if (s.startsWith("SENSOR")) {
 			String values[] = s.substring(6, s.length()).split(",");
 			for (String v : values) {
@@ -181,11 +193,14 @@ public class TreeRemoteImpl implements ITreeRemote {
 					} else { // när man inte är emot!
 						isChangeingVolume = false;
 						if (isTouching) { // när man precis varit emot!
+							moodTouchCount++;
 							latestReleases.add(System.currentTimeMillis());
 							if (System.currentTimeMillis() - lastTouch < 500) {
 								if (shouldChangeTrack()) {
 									next();
-								} else if(shouldPlayLemonTree()) {
+								} else if(shouldPlayJungle()) {
+									play("spotify:track:5fPsfvEZuKACueVVipaRZk");
+								}else if(shouldPlayLemonTree()) {
 									play("spotify:track:1yN2z5XVtaAOYGdeEqEuqd");
 								} else {
 									startPause();
@@ -197,6 +212,22 @@ public class TreeRemoteImpl implements ITreeRemote {
 				}
 			}
 		}
+	}
+	
+	private void changeMood(int touches) {
+		if(touches<1)
+			m=Mood.sad;
+		else if(touches>8) m=Mood.angry;
+		else m=Mood.happy;
+		//TODO: change playlist depending on mood.
+		moodTouchCount=0; 
+		moodTimer=System.currentTimeMillis();
+	}
+
+	public String uriToHTTP(String uri){
+		String http = "http://open.spotify.com/"+uri.replaceAll(":", "/").substring(8);
+		System.out.println(http);
+		return http;
 	}
 
 	@Override

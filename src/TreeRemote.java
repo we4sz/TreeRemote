@@ -14,7 +14,7 @@ import com.esotericsoftware.kryonet.FrameworkMessage;
 import com.esotericsoftware.kryonet.Listener;
 
 public class TreeRemote {
-
+	
 	private WebSocketClientFactory cf = new WebSocketClientFactory();
 	private Connection connection = null;
 	private TreeRemoteImpl tree;
@@ -79,7 +79,7 @@ public class TreeRemote {
 			@Override
 			public void run() {
 				try {
-					Client c = new Client(1048576, 1048576);
+					Client c = new Client(4194304, 4194304);
 					c.start();
 					c.addListener(new Listener() {
 
