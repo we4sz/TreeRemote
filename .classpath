@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
+	<classpathentry kind="lib" path="libs/gson-2.2.2.jar"/>
+	<classpathentry kind="lib" path="libs/jetty-ajp-8.0.4.v20111024.jar"/>
+	<classpathentry kind="lib" path="libs/jetty-annotations-8.0.4.v20111024.jar"/>
+	<classpathentry kind="lib" path="libs/jetty-client-8.0.4.v20111024.jar"/>
+	<classpathentry kind="lib" path="libs/jetty-continuation-8.0.4.v20111024.jar"/>
+	<classpathentry kind="lib" path="libs/jetty-deploy-8.0.4.v20111024.jar"/>
+	<classpathentry kind="lib" path="libs/jetty-http-8.0.4.v20111024.jar"/>
+	<classpathentry kind="lib" path="libs/jetty-io-8.0.4.v20111024.jar"/>
+	<classpathentry kind="lib" path="libs/jetty-jmx-8.0.4.v20111024.jar"/>
+	<classpathentry kind="lib" path="libs/jetty-jndi-8.0.4.v20111024.jar"/>
+	<classpathentry kind="lib" path="libs/jetty-overlay-deployer-8.0.4.v20111024.jar"/>
+	<classpathentry kind="lib" path="libs/jetty-plus-8.0.4.v20111024.jar"/>
+	<classpathentry kind="lib" path="libs/jetty-policy-8.0.4.v20111024.jar"/>
+	<classpathentry kind="lib" path="libs/jetty-rewrite-8.0.4.v20111024.jar"/>
+	<classpathentry kind="lib" path="libs/jetty-security-8.0.4.v20111024.jar"/>
+	<classpathentry kind="lib" path="libs/jetty-util-8.0.4.v20111024.jar"/>
+	<classpathentry kind="lib" path="libs/jetty-webapp-8.0.4.v20111024.jar"/>
+	<classpathentry kind="lib" path="libs/jetty-websocket-8.0.4.v20111024.jar"/>
+	<classpathentry kind="lib" path="libs/jetty-xml-8.0.4.v20111024.jar"/>
+	<classpathentry kind="lib" path="libs/kryonet-2.18-all.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
