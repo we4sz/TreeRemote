@@ -110,6 +110,18 @@ public class TreeRemoteImpl implements ITreeRemote {
 		return current.getVolume() == 100
 				|| (current.getVolume() != 0 && System.currentTimeMillis() - lastTouch > 500 && ((isChangeingVolume && !increaseLast) || (!isChangeingVolume && increaseLast)));
 	}
+	
+	public boolean shouldPlayLemonTree() {
+		return numberOfTouchesInRow() == 5;
+	}
+	
+	public void play (String uri) {
+		ControllerRequest r = new ControllerRequest();
+		JsonController con = new JsonController();
+		con.setPlayTrack(uri);
+		r.setJsonController(con);
+		c.sendTCP(new Gson().toJson(r));
+	}
 
 	public void startPause() {
 		new Thread(new Runnable() {
@@ -173,6 +185,8 @@ public class TreeRemoteImpl implements ITreeRemote {
 							if (System.currentTimeMillis() - lastTouch < 500) {
 								if (shouldChangeTrack()) {
 									next();
+								} else if(shouldPlayLemonTree()) {
+									play("spotify:track:1yN2z5XVtaAOYGdeEqEuqd");
 								} else {
 									startPause();
 								}
