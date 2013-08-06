@@ -1,5 +1,10 @@
+import java.util.LinkedList;
+import java.util.List;
+
 import json.models.ArtistAlbumTrack;
 import json.models.TrackPlaylist;
+import json.request.ControllerRequest;
+import json.request.JsonController;
 import json.response.CurrentResponse;
 import json.response.JsonCurrent;
 import json.response.LoggedResponse;
@@ -18,9 +23,16 @@ public class TreeRemoteImpl implements ITreeRemote {
 	private PlaylistResponse playlists;
 	private long trackStarted;
 	private JsonCurrent current;
+	private Connection c;
+	private boolean isTouching = false;
+	private long lastTouch = 0;
+	private List<Long> latestReleases = new LinkedList<Long>();
+	private boolean isChangeingVolume = false;
+	private boolean increaseLast = false;
+	private static final int PAUSELIMIT = 800;
 
 	public TreeRemoteImpl() {
-		// TODO Auto-generated constructor stub
+		latestReleases.add(new Long(0));
 	}
 
 	public boolean isLoggedin() {
@@ -41,32 +53,145 @@ public class TreeRemoteImpl implements ITreeRemote {
 
 	@Override
 	public void connectedToTree() {
-		// TODO Auto-generated method stub
 		System.out.println("contree");
 	}
 
 	@Override
 	public void disconnectedFromTree() {
-		// TODO Auto-generated method stub
 		System.out.println("distree");
+	}
+
+	public void pause() {
+		ControllerRequest r = new ControllerRequest();
+		JsonController con = new JsonController();
+		con.setPaused(true);
+		r.setJsonController(con);
+		c.sendTCP(new Gson().toJson(r));
+	}
+
+	public int numberOfTouchesInRow() {
+		int touches = 0;
+		if (System.currentTimeMillis()
+				- latestReleases.get(latestReleases.size() - 1) < PAUSELIMIT) {
+			touches++;
+			for (int i = latestReleases.size() - 1; i > 0; i--) {
+				if (latestReleases.get(i) - latestReleases.get(i - 1) < PAUSELIMIT) {
+					touches++;
+				} else {
+					break;
+				}
+			}
+		}
+		return touches;
+	}
+
+	public void next() {
+		ControllerRequest r = new ControllerRequest();
+		JsonController con = new JsonController();
+		con.setNext(true);
+		r.setJsonController(con);
+		c.sendTCP(new Gson().toJson(r));
+	}
+
+	public boolean isTouch(int v) {
+		return v == 255;
+	}
+
+	public boolean shouldChangeTrack() {
+		return numberOfTouchesInRow() == 2;
+	}
+
+	public boolean shouldIncreaseVolume() {
+		return current.getVolume() == 0
+				|| (current.getVolume() != 100 && System.currentTimeMillis() - lastTouch > 500 && ((isChangeingVolume && increaseLast) || (!isChangeingVolume && !increaseLast)));
+	}
+
+	public boolean shouldDecreaseVolume() {
+		return current.getVolume() == 100
+				|| (current.getVolume() != 0 && System.currentTimeMillis() - lastTouch > 500 && ((isChangeingVolume && !increaseLast) || (!isChangeingVolume && increaseLast)));
+	}
+
+	public void startPause() {
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					Thread.sleep(PAUSELIMIT);
+					if (numberOfTouchesInRow() == 0) {
+						pause();
+					}
+				} catch (InterruptedException e) {
+				}
+			}
+		}).start();
+	}
+
+	public void increaseVolume() {
+		if (current.getVolume() < 100) {
+			ControllerRequest r = new ControllerRequest();
+			JsonController con = new JsonController();
+			con.setVolume(current.getVolume() + 2);
+			r.setJsonController(con);
+			c.sendTCP(new Gson().toJson(r));
+		}
+	}
+
+	public void decreaseVolume() {
+		if (current.getVolume() > 0) {
+			ControllerRequest r = new ControllerRequest();
+			JsonController con = new JsonController();
+			con.setVolume(current.getVolume() - 2);
+			r.setJsonController(con);
+			c.sendTCP(new Gson().toJson(r));
+		}
 	}
 
 	@Override
 	public void dataFromTree(String s) {
-		// TODO Auto-generated method stub
-		System.out.println("datatree");
+		if (s.startsWith("SENSOR")) {
+			String values[] = s.substring(6, s.length()).split(",");
+			for (String v : values) {
+				if (c != null && c.isConnected()) {
+					int value = (int) Double.parseDouble(v);
+					if (isTouch(value) && !isTouching) {
+						isTouching = true;
+						lastTouch = System.currentTimeMillis();
+					} else if (isTouch(value)) {
+						if (shouldIncreaseVolume()) {
+							isChangeingVolume = true;
+							increaseLast = true;
+							increaseVolume();
+						} else if (shouldDecreaseVolume()) {
+							isChangeingVolume = true;
+							increaseLast = false;
+							decreaseVolume();
+						}
+					} else { // när man inte är emot!
+						isChangeingVolume = false;
+						if (isTouching) { // när man precis varit emot!
+							latestReleases.add(System.currentTimeMillis());
+							if (System.currentTimeMillis() - lastTouch < 500) {
+								if (shouldChangeTrack()) {
+									next();
+								} else {
+									startPause();
+								}
+							}
+						}
+						isTouching = false;
+					}
+				}
+			}
+		}
 	}
 
 	@Override
 	public void disconnectedFromBohnify() {
-		// TODO Auto-generated method stub
 		System.out.println("disbohn");
 	}
 
 	@Override
 	public void dataFromBohnify(String s) {
-		// TODO Auto-generated method stub
-		System.out.println("databohn");
 		try {
 			if (s.contains("jsonLogged")) {
 				LoggedResponse r = (LoggedResponse) new Gson().fromJson(s,
@@ -95,7 +220,6 @@ public class TreeRemoteImpl implements ITreeRemote {
 					trackStarted = System.currentTimeMillis()
 							- r.getJsonCurrent().getPosition();
 				}
-				boolean f = isParty();
 				current = r.getJsonCurrent();
 				loggedin = true;
 			} else if (s.contains("jsonRank")) {
@@ -126,14 +250,10 @@ public class TreeRemoteImpl implements ITreeRemote {
 
 	}
 
-	private boolean isParty() {
-		return current.isParty();
-	}
-
 	@Override
 	public void connectedToBohnify(Connection c) {
-		// TODO Auto-generated method stub
 		System.out.println("conbohn");
+		this.c = c;
 	}
 
 }
