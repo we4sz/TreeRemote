@@ -18,7 +18,10 @@ import com.esotericsoftware.kryonet.Connection;
 import com.google.gson.Gson;
 
 public class TreeRemoteImpl implements ITreeRemote {
-	private enum Mood {sad,happy,angry,excited,bored};
+	private enum Mood {
+		sad, happy, angry, excited, bored
+	};
+
 	private Mood m = Mood.sad;
 	private boolean loggedin = false;
 	private PlaylistResponse playlists;
@@ -26,16 +29,20 @@ public class TreeRemoteImpl implements ITreeRemote {
 	private JsonCurrent current;
 	private Connection c;
 	private boolean isTouching = false;
-	private long lastTouch = 0;
+	private List<Long> latestTouches = new LinkedList<Long>();
 	private List<Long> latestReleases = new LinkedList<Long>();
 	private boolean isChangeingVolume = false;
 	private boolean increaseLast = false;
 	private static final int PAUSELIMIT = 800;
-	private static final int MOODLIMIT = 20000;//TODO: between switches of mood. maybe 5 minutes?
+	private static final int MOODLIMIT = 20000;// TODO: between switches of
+												// mood. maybe 5 minutes?
 	private long moodTimer = System.currentTimeMillis();
-	private int moodTouchCount=0;
-	
+	private int moodTouchCount = 0;
+	private FbConnector faceBook;
+	private String lastTrack ="";
 	public TreeRemoteImpl() {
+		faceBook = new FbConnector();
+		latestTouches.add(new Long(0));
 		latestReleases.add(new Long(0));
 	}
 
@@ -75,8 +82,7 @@ public class TreeRemoteImpl implements ITreeRemote {
 
 	public int numberOfTouchesInRow() {
 		int touches = 0;
-		if (System.currentTimeMillis()
-				- latestReleases.get(latestReleases.size() - 1) < PAUSELIMIT) {
+		if (System.currentTimeMillis() - latestReleases.get(latestReleases.size() - 1) < PAUSELIMIT) {
 			touches++;
 			for (int i = latestReleases.size() - 1; i > 0; i--) {
 				if (latestReleases.get(i) - latestReleases.get(i - 1) < PAUSELIMIT) {
@@ -107,25 +113,27 @@ public class TreeRemoteImpl implements ITreeRemote {
 
 	public boolean shouldIncreaseVolume() {
 		return current.getVolume() == 0
-				|| (current.getVolume() != 100 && System.currentTimeMillis() - lastTouch > 500 && ((isChangeingVolume && increaseLast) || (!isChangeingVolume && !increaseLast)));
+				|| (current.getVolume() != 100
+						&& System.currentTimeMillis() - latestTouches.get(latestTouches.size() - 1) > 500 && ((isChangeingVolume && increaseLast) || (!isChangeingVolume && !increaseLast)));
 	}
 
 	public boolean shouldDecreaseVolume() {
 		return current.getVolume() == 100
-				|| (current.getVolume() != 0 && System.currentTimeMillis() - lastTouch > 500 && ((isChangeingVolume && !increaseLast) || (!isChangeingVolume && increaseLast)));
+				|| (current.getVolume() != 0
+						&& System.currentTimeMillis() - latestTouches.get(latestTouches.size() - 1) > 500 && ((isChangeingVolume && !increaseLast) || (!isChangeingVolume && increaseLast)));
 	}
-	
+
 	public boolean shouldPlayLemonTree() {
 		return numberOfTouchesInRow() == 5;
-		//TODO: Change mood
+		// TODO: Change mood
 	}
-	
+
 	public boolean shouldPlayJungle() {
 		return numberOfTouchesInRow() == 3;
-		//TODO: Change mood
+		// TODO: Change mood
 	}
-	
-	public void play (String uri) {
+
+	public void play(String uri) {
 		ControllerRequest r = new ControllerRequest();
 		JsonController con = new JsonController();
 		con.setPlayTrack(uri);
@@ -170,7 +178,7 @@ public class TreeRemoteImpl implements ITreeRemote {
 
 	@Override
 	public void dataFromTree(String s) {
-		if (System.currentTimeMillis()-moodTimer > MOODLIMIT)
+		if (System.currentTimeMillis() - moodTimer > MOODLIMIT)
 			changeMood(moodTouchCount);
 		if (s.startsWith("SENSOR")) {
 			String values[] = s.substring(6, s.length()).split(",");
@@ -179,7 +187,7 @@ public class TreeRemoteImpl implements ITreeRemote {
 					int value = (int) Double.parseDouble(v);
 					if (isTouch(value) && !isTouching) {
 						isTouching = true;
-						lastTouch = System.currentTimeMillis();
+						latestTouches.add(System.currentTimeMillis());
 					} else if (isTouch(value)) {
 						if (shouldIncreaseVolume()) {
 							isChangeingVolume = true;
@@ -195,12 +203,12 @@ public class TreeRemoteImpl implements ITreeRemote {
 						if (isTouching) { // när man precis varit emot!
 							moodTouchCount++;
 							latestReleases.add(System.currentTimeMillis());
-							if (System.currentTimeMillis() - lastTouch < 500) {
+							if (System.currentTimeMillis() - latestTouches.get(latestTouches.size() - 1) < 500) {
 								if (shouldChangeTrack()) {
 									next();
-								} else if(shouldPlayJungle()) {
+								} else if (shouldPlayJungle()) {
 									play("spotify:track:5fPsfvEZuKACueVVipaRZk");
-								}else if(shouldPlayLemonTree()) {
+								} else if (shouldPlayLemonTree()) {
 									play("spotify:track:1yN2z5XVtaAOYGdeEqEuqd");
 								} else {
 									startPause();
@@ -213,19 +221,21 @@ public class TreeRemoteImpl implements ITreeRemote {
 			}
 		}
 	}
-	
+
 	private void changeMood(int touches) {
-		if(touches<1)
-			m=Mood.sad;
-		else if(touches>8) m=Mood.angry;
-		else m=Mood.happy;
-		//TODO: change playlist depending on mood.
-		moodTouchCount=0; 
-		moodTimer=System.currentTimeMillis();
+		if (touches < 1)
+			m = Mood.sad;
+		else if (touches > 8)
+			m = Mood.angry;
+		else
+			m = Mood.happy;
+		// TODO: change playlist depending on mood.
+		moodTouchCount = 0;
+		moodTimer = System.currentTimeMillis();
 	}
 
-	public String uriToHTTP(String uri){
-		String http = "http://open.spotify.com/"+uri.replaceAll(":", "/").substring(8);
+	public String uriToHTTP(String uri) {
+		String http = "http://open.spotify.com/" + uri.replaceAll(":", "/").substring(8);
 		System.out.println(http);
 		return http;
 	}
@@ -239,41 +249,36 @@ public class TreeRemoteImpl implements ITreeRemote {
 	public void dataFromBohnify(String s) {
 		try {
 			if (s.contains("jsonLogged")) {
-				LoggedResponse r = (LoggedResponse) new Gson().fromJson(s,
-						LoggedResponse.class);
+				LoggedResponse r = (LoggedResponse) new Gson().fromJson(s, LoggedResponse.class);
 				loggedin = false;
 			} else if (s.contains("jsonPlayLists")) {
-				PlaylistResponse r = (PlaylistResponse) new Gson().fromJson(s,
-						PlaylistResponse.class);
+				PlaylistResponse r = (PlaylistResponse) new Gson().fromJson(s, PlaylistResponse.class);
 				this.playlists = r;
 			} else if (s.contains("jsonSearch")) {
-				SearchResponse r = (SearchResponse) new Gson().fromJson(s,
-						SearchResponse.class);
+				SearchResponse r = (SearchResponse) new Gson().fromJson(s, SearchResponse.class);
 			} else if (s.contains("jsonToplist")) {
-				TracksResponse r = (TracksResponse) new Gson().fromJson(s,
-						TracksResponse.class);
+				TracksResponse r = (TracksResponse) new Gson().fromJson(s, TracksResponse.class);
 			} else if (s.contains("jsonHistory")) {
-				TracksResponse r = (TracksResponse) new Gson().fromJson(s,
-						TracksResponse.class);
+				TracksResponse r = (TracksResponse) new Gson().fromJson(s, TracksResponse.class);
 			} else if (s.contains("jsonQueue")) {
-				TracksResponse r = (TracksResponse) new Gson().fromJson(s,
-						TracksResponse.class);
+				TracksResponse r = (TracksResponse) new Gson().fromJson(s, TracksResponse.class);
 			} else if (s.contains("jsonCurrent")) {
-				CurrentResponse r = (CurrentResponse) new Gson().fromJson(s,
-						CurrentResponse.class);
+				CurrentResponse r = (CurrentResponse) new Gson().fromJson(s, CurrentResponse.class);
 				if (r.getJsonCurrent() != null) {
-					trackStarted = System.currentTimeMillis()
-							- r.getJsonCurrent().getPosition();
+					trackStarted = System.currentTimeMillis() - r.getJsonCurrent().getPosition();
 				}
 				current = r.getJsonCurrent();
+				if(current.getTrack() != null && !lastTrack.equals(current.getTrack().getId())){
+					System.out.println("asd");
+					faceBook.publishPost("lol", uriToHTTP(current.getTrack().getId()));
+					lastTrack = current.getTrack().getId();
+				}
 				loggedin = true;
 			} else if (s.contains("jsonRank")) {
-				RankResponse r = (RankResponse) new Gson().fromJson(s,
-						RankResponse.class);
+				RankResponse r = (RankResponse) new Gson().fromJson(s, RankResponse.class);
 				if (r.getJsonRank() != null) {
 					for (ArtistAlbumTrack track : r.getJsonRank().getTracks()) {
-						for (TrackPlaylist p : playlists.getJsonPlayLists()
-								.getPlayLists()) {
+						for (TrackPlaylist p : playlists.getJsonPlayLists().getPlayLists()) {
 							for (ArtistAlbumTrack track1 : p.getTracks()) {
 								if (track.equals(track1)) {
 									track1.setRank(track.getRank());
@@ -284,8 +289,7 @@ public class TreeRemoteImpl implements ITreeRemote {
 
 				}
 			} else if (s.contains("jsonToken")) {
-				TokenResponse r = (TokenResponse) new Gson().fromJson(s,
-						TokenResponse.class);
+				TokenResponse r = (TokenResponse) new Gson().fromJson(s, TokenResponse.class);
 				if (r.getJsonToken() != null) {
 				}
 			}
