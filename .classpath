@@ -22,8 +22,8 @@
 	<classpathentry kind="lib" path="libs/jetty-websocket-8.0.4.v20111024.jar"/>
 	<classpathentry kind="lib" path="libs/jetty-xml-8.0.4.v20111024.jar"/>
 	<classpathentry kind="lib" path="libs/kryonet-2.18-all.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Robin Hammaräng/Documents/GitHub/TreeRemote/libs/restfb-1.6.12.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Robin Hammaräng/Documents/GitHub/TreeRemote/libs/json_simple-1.1.jar"/>
-	<classpathentry kind="lib" path="C:/Users/Robin Hammaräng/Documents/GitHub/TreeRemote/libs/jEN.jar"/>
+	<classpathentry kind="lib" path="libs/restfb-1.6.12.jar"/>
+	<classpathentry kind="lib" path="libs/jEN.jar"/>
+	<classpathentry kind="lib" path="libs/json_simple-1.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

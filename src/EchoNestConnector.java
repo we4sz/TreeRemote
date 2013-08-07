@@ -14,7 +14,6 @@ public class EchoNestConnector {
 	private List<Song> songs;
 	
 	public EchoNestConnector(String mood, int results) throws EchoNestException{
-		float ht = (float) 0.6;
 		Params p = new Params();
         p.add("mood", mood);
         p.add("results", results);
