@@ -5,8 +5,8 @@ import com.restfb.types.Page;
 
 
 public class FbConnector {
-	final private String ACCESS_TOKEN = "CAAHaPypTIb8BAPJZAPWcRloY3s8ommEVj5liVZBbwiSugZA5kqAPhajqCyk5YasTf9MsReUCpioDwppHctFXGh2L5SH6bonoFUp8eOzzKOWvB4JyAPHiZAM6ZBQo49jcDOAbXiPASzJNbszya7Rjuuvex2xWsubkFjQ1QkWQYQ9eoPi5SZA2ML";
-	private final FacebookClient fbClient; 
+	final private String ACCESS_TOKEN = "CAAHaPypTIb8BAGBZBwqEbGmT8uPHPWoquBwTFz2ZBiTjTW8B2aSCGO9ZCK816kydPxgQuVgPeKHkrsSrC6L6niUQXNiukZBVsNxcmSC7PATcIjhRRs7P11wHAlD2RqcXtOSrCY8gKJIBIDlPmYfAEUeFKnIkaXGVbWujLn6QwR01Hum17wCL";
+	private FacebookClient fbClient; 
 	private Page page;
 	
 	public FbConnector(){
